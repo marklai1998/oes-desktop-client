@@ -66,9 +66,9 @@ export const Layout = ({ children, exam }: Props) => {
       <Content>{children}</Content>
       <TimeLine>
         <Steps current={step} size="small">
-          <Step title="Convening" description={dayjs(times[0]).fromNow()} />
-          <Step title="On going" description={dayjs(times[1]).fromNow()} />
-          <Step title="Finishing" description={dayjs(times[2]).fromNow()} />
+          <Step title="Convene" description={dayjs(times[0]).fromNow()} />
+          <Step title="Start" description={dayjs(times[1]).fromNow()} />
+          <Step title="Finish" description={dayjs(times[2]).fromNow()} />
           <Step title="End" description={dayjs(times[3]).fromNow()} />
         </Steps>
       </TimeLine>
