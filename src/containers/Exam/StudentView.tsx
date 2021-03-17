@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { PopulatedExam } from '../../types/exam';
 import { StreamPreview } from './StreamPreview';
 import * as R from 'ramda';
+import { useUnmount } from 'react-use';
 
 type Props = {
   exam: PopulatedExam;
@@ -52,6 +53,16 @@ export const StudentView = ({ exam }: Props) => {
     initDesktopStream();
     initCameraStream();
   }, []);
+
+  useUnmount(() => {
+    allStreams.forEach((stream) => {
+      const tracks = stream.getTracks();
+
+      tracks.forEach((track) => {
+        track.stop();
+      });
+    });
+  });
 
   useEffect(() => {
     const firstStream = R.head(allStreams);
