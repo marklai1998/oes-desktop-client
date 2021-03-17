@@ -14,6 +14,7 @@ import { createHashHistory } from 'history';
 import { createGlobalStyle } from 'styled-components';
 import { Layout } from './containers/_Layout';
 import 'antd/dist/antd.css';
+import { Profile } from './containers/Profile';
 
 const mainElement = document.createElement('div');
 mainElement.setAttribute('id', 'root');
@@ -32,6 +33,7 @@ const App = () => {
         <Switch>
           <Route exact path="/" component={Greetings} />
           <Route exact path="/login" component={Login} />
+          <Route exact path="/profile" component={Profile} />
         </Switch>
       </Layout>
     </>
