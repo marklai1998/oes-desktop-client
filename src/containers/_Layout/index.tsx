@@ -1,4 +1,4 @@
-import { Avatar, Button, Dropdown, Menu } from 'antd';
+import { Avatar, Dropdown, Menu } from 'antd';
 import React from 'react';
 import styled from 'styled-components';
 import { useAuth } from '../../hooks/useAuth';
@@ -135,10 +135,5 @@ const UserWrapper = styled.div`
 `;
 
 const StyledLink = styled.a`
-  color: #fff;
-`;
-
-const StyledButton = styled(Button)`
-  margin-right: 16px;
   color: #fff;
 `;

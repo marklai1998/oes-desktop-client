@@ -1,7 +1,6 @@
 import React from 'react';
 import { render } from 'react-dom';
 
-import Greetings from './components/Greetings';
 import { Router, Route, Switch } from 'react-router';
 import { UserSocketProvider, useSocket } from './hooks/useSocket';
 import { useAuth, UserAuthProvider } from './hooks/useAuth';
@@ -15,6 +14,7 @@ import { createGlobalStyle } from 'styled-components';
 import { Layout } from './containers/_Layout';
 import 'antd/dist/antd.css';
 import { Profile } from './containers/Profile';
+import ExamList from './containers/ExamList';
 
 const mainElement = document.createElement('div');
 mainElement.setAttribute('id', 'root');
@@ -31,7 +31,7 @@ const App = () => {
       <GlobalStyle />
       <Layout>
         <Switch>
-          <Route exact path="/" component={Greetings} />
+          <Route exact path="/" component={ExamList} />
           <Route exact path="/login" component={Login} />
           <Route exact path="/profile" component={Profile} />
         </Switch>
