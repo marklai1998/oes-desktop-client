@@ -1,0 +1,7 @@
+export enum examStatusType {
+  UPCOMING = "UPCOMING",
+  CONVENING = "CONVENING",
+  ONGOING = "ONGOING",
+  FINISHING = "FINISHING",
+  ENDED = "ENDED",
+}
