@@ -63,7 +63,7 @@ export const Layout = ({ children, exam }: Props) => {
           )}
         </UserWrapper>
       </Header>
-      <Content>{children}</Content>
+      {children}
       <TimeLine>
         <Steps current={step} size="small">
           <Step title="Convene" description={dayjs(times[0]).fromNow()} />
@@ -104,11 +104,6 @@ const NameWrapper = styled.div`
 const UserWrapper = styled.div`
   flex-shrink: 0;
   align-self: center;
-`;
-
-const Content = styled.div`
-  width: 100%;
-  height: 100%;
 `;
 
 const TimeLine = styled(Box)`
