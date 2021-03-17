@@ -2,7 +2,7 @@ import React from 'react';
 import { render } from 'react-dom';
 
 import Greetings from './components/Greetings';
-import { Router, Route } from 'react-router';
+import { Router, Route, Switch } from 'react-router';
 import { UserSocketProvider, useSocket } from './hooks/useSocket';
 import { useAuth, UserAuthProvider } from './hooks/useAuth';
 import { PageLoading } from './components/PageLoading';
@@ -11,6 +11,9 @@ import { RecoilRoot } from 'recoil';
 import { UseTimeProvider } from './hooks/useTime';
 import { UseLayoutProvider } from './hooks/useLayout';
 import { createHashHistory } from 'history';
+import { createGlobalStyle } from 'styled-components';
+import { Layout } from './containers/_Layout';
+import 'antd/dist/antd.css';
 
 const mainElement = document.createElement('div');
 mainElement.setAttribute('id', 'root');
@@ -24,8 +27,13 @@ const App = () => {
     <PageLoading />
   ) : (
     <>
-      <Route exact path="/" component={Greetings} />
-      <Route exact path="/login" component={Login} />
+      <GlobalStyle />
+      <Layout>
+        <Switch>
+          <Route exact path="/" component={Greetings} />
+          <Route exact path="/login" component={Login} />
+        </Switch>
+      </Layout>
     </>
   );
 };
@@ -46,3 +54,9 @@ render(
   </Router>,
   mainElement
 );
+
+const GlobalStyle = createGlobalStyle`
+body{
+  background-color:#f9f9f9;
+}
+`;

@@ -1,5 +1,9 @@
 import React from 'react';
+import { LoginForm } from '../../components/LoginForm';
+import { useAuth } from '../../hooks/useAuth';
 
 export const Login = () => {
-  return <div>login</div>;
+  const { login } = useAuth();
+
+  return <LoginForm onSubmit={login} />;
 };

@@ -14,11 +14,27 @@ module.exports = {
   module: {
     rules: [
       {
+        test: /\.css$/i,
+        use: ['style-loader', 'css-loader'],
+      },
+      {
         test: /\.(js|ts|tsx)$/,
         exclude: /node_modules/,
         use: {
           loader: 'babel-loader',
         },
+      },
+      {
+        type: 'javascript/auto',
+        test: /\.(png|jpg|gif|svg|ico|json)$/,
+        use: [
+          {
+            loader: 'file-loader',
+            options: {
+              outputPath: 'assets',
+            },
+          },
+        ],
       },
     ],
   },
