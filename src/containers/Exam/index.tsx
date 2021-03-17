@@ -21,7 +21,11 @@ export const Exam = () => {
     <></>
   ) : (
     <Layout exam={data}>
-      {isInvigilator ? <InvigilatorView /> : <StudentView />}
+      {isInvigilator ? (
+        <InvigilatorView exam={data} />
+      ) : (
+        <StudentView exam={data} />
+      )}
     </Layout>
   );
 };

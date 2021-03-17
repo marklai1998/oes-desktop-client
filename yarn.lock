@@ -2207,7 +2207,7 @@
   dependencies:
     "color-convert" "^2.0.1"
 
-"antd@^4.14.0":
+"antd@^4.13.1":
   "integrity" "sha512-K0VG6Ion4gGX8Lo8mJVfNDD8JrHjTq/qlBkicmpZGQXOOAWi19EElH2RpKGN1+WD4OXekWo6dZkSDmK2Lzxe5Q=="
   "resolved" "https://registry.npmjs.org/antd/-/antd-4.14.0.tgz"
   "version" "4.14.0"
