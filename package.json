@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "npm-run-all -p dev:react electron:serve",
     "dev:electron": "cross-env NODE_ENV=development webpack --config webpack/electron.webpack.js --mode development && npm run start:electron",
-    "dev:react": "cross-env NODE_ENV=development webpack serve --config webpack/react.webpack.js --mode development",
+    "dev:react": "cross-env NODE_ENV=development webpack serve --hot --config webpack/react.webpack.js --mode development",
     "electron:serve": "wait-on http-get://localhost:4000/ && npm run dev:electron",
     "start:electron": "electron .",
     "build": "npm-run-all build:electron build:react",
@@ -22,6 +22,7 @@
   "license": "MIT",
   "devDependencies": {
     "@babel/core": "^7.13.10",
+    "@babel/plugin-transform-runtime": "^7.13.10",
     "@babel/preset-env": "^7.13.10",
     "@babel/preset-react": "^7.12.13",
     "@babel/preset-typescript": "^7.13.0",
@@ -68,6 +69,7 @@
     "webpack-dev-server": "^3.11.2"
   },
   "dependencies": {
+    "@babel/runtime": "^7.13.10",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "styled-components": "^5.2.1"
