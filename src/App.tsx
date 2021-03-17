@@ -15,6 +15,7 @@ import { Layout } from './containers/_Layout';
 import 'antd/dist/antd.css';
 import { Profile } from './containers/Profile';
 import ExamList from './containers/ExamList';
+import { Exam } from './containers/Exam';
 
 const mainElement = document.createElement('div');
 mainElement.setAttribute('id', 'root');
@@ -34,6 +35,7 @@ const App = () => {
           <Route exact path="/" component={ExamList} />
           <Route exact path="/login" component={Login} />
           <Route exact path="/profile" component={Profile} />
+          <Route exact path="/exam/:id/join" component={Exam} />
         </Switch>
       </Layout>
     </>

@@ -75,9 +75,11 @@
     "webpack-dev-server": "^3.11.2"
   },
   "dependencies": {
+    "@ant-design/icons": "^4.5.0",
     "@babel/runtime": "^7.13.10",
     "antd": "^4.14.0",
     "constate": "^3.2.0",
+    "node-match-path": "^0.6.1",
     "ramda": "^0.27.1",
     "randomcolor": "^0.6.2",
     "react": "^17.0.1",

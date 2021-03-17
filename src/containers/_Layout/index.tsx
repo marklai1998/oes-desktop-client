@@ -6,9 +6,10 @@ import { LogoutOutlined, ProfileOutlined } from '@ant-design/icons';
 import randomColor from 'randomcolor';
 import { PageLoading } from '../../components/PageLoading';
 import { useSocket } from '../../hooks/useSocket';
-import { useHistory } from 'react-router';
+import { useHistory, useLocation } from 'react-router';
 import { Link } from 'react-router-dom';
 import logo from '../../assets/logo.svg';
+import { match } from 'node-match-path';
 
 type Props = {
   children: React.ReactNode;
@@ -18,9 +19,14 @@ export const Layout = ({ children }: Props) => {
   const browserHistory = useHistory();
   const { user, logout, isAuthing } = useAuth();
   const { socket } = useSocket();
+  const { pathname } = useLocation();
+
+  const { matches: inExam } = match('/exam/:id/join', pathname);
 
   return isAuthing || !socket ? (
     <PageLoading />
+  ) : inExam ? (
+    <Wrapper>{children}</Wrapper>
   ) : (
     <Wrapper>
       <ColWrapper>
