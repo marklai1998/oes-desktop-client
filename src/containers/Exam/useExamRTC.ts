@@ -6,6 +6,7 @@ import { userTierType } from '../../constants/userTierType';
 import { message } from 'antd';
 import { useMap } from 'react-use';
 import * as R from 'ramda';
+import { useTime } from '../../hooks/useTime';
 
 const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
@@ -61,20 +62,32 @@ export const useExamRTC = ({
 
       peerConnection.onicecandidate = (event) => {
         if (!event.candidate) return;
-        console.log('Create ICE candidate');
+        console.log('Create ICE candidate for', peerId);
         socket.emit(socketEvent.RELAY_ICE_CANDIDATE, {
           peerId,
           iceCandidate: event.candidate,
         });
       };
 
-      peerConnection.ontrack = (event) => {
+      peerConnection.onconnectionstatechange = (e) => {
+        console.log(
+          'Connection status changed for',
+          peerId,
+          ' to ',
+          e.target ? (e.target as RTCPeerConnection).connectionState : 'UNKNOWN'
+        );
+      };
+
+      peerConnection.onaddstream = (event) => {
         console.log('onAddStream', event);
       };
 
       if (shouldCreateOffer) {
         console.log('Creating RTC offer to ', peerId);
-        const localDescription = await peerConnection.createOffer();
+        const localDescription = await peerConnection.createOffer({
+          offerToReceiveAudio: true,
+          offerToReceiveVideo: true,
+        });
 
         peerConnection.setLocalDescription(localDescription);
         socket.emit(socketEvent.RELAY_SESSION_DESCRIPTION, {
@@ -88,7 +101,7 @@ export const useExamRTC = ({
 
   const handleRemovePeer = useCallback(
     ({ peerId }: { peerId: string }) => {
-      console.log('Signaling server said to remove peer:', peerId);
+      console.log('Remove peer ', peerId);
 
       const peer = peers[peerId];
       peer && peer.connection.close();
@@ -108,7 +121,7 @@ export const useExamRTC = ({
       if (!socket) return;
 
       console.log(
-        'Remote description received: ',
+        'Remote description received ',
         remoteDescription.type,
         peerId
       );
@@ -183,7 +196,10 @@ export const useExamRTC = ({
     R.keys(peers).forEach((peerId) => {
       const peer = peers[peerId];
       if (peer.user.tier !== userTierType.STUDENT) {
-        // peer.connection.addTrack(new MediaStreamTrack(), ...mediaStreams);
+        mediaStreams.forEach((stream) => {
+          console.log('Add stream');
+          peer.connection.addStream(stream);
+        });
       }
     });
   }, [mediaStreams]);

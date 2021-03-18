@@ -12,8 +12,6 @@ type Props = {
 };
 
 export const StudentView = ({ exam }: Props) => {
-  useExamRTC({ examId: exam._id });
-
   const [selectedStreamId, setSelectedStreamId] = useState<string | null>(null);
 
   const [desktopStream, setDesktopStream] = useState<MediaStream[]>([]);
@@ -23,6 +21,8 @@ export const StudentView = ({ exam }: Props) => {
     desktopStream,
     cameraStream,
   ]);
+
+  useExamRTC({ examId: exam._id, mediaStreams: allStreams });
 
   const initDesktopStream = async () => {
     const sources = await desktopCapturer.getSources({ types: ['screen'] });
