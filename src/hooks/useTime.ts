@@ -1,7 +1,8 @@
-import constate from "constate";
-import { useEffect, useState } from "react";
-import { dayjs } from "../utils/dayjs";
-import { useSocket } from "./useSocket";
+import constate from 'constate';
+import { useEffect, useState } from 'react';
+import { socketEvent } from '../constants/socketEvent';
+import { dayjs } from '../utils/dayjs';
+import { useSocket } from './useSocket';
 
 export const [UseTimeProvider, useTime, useDate] = constate(
   () => {
@@ -10,7 +11,7 @@ export const [UseTimeProvider, useTime, useDate] = constate(
 
     useEffect(() => {
       socket &&
-        socket.on("time", (time: string) => {
+        socket.on(socketEvent.TIME, (time: string) => {
           setTime(time);
         });
     }, [socket]);
@@ -18,5 +19,5 @@ export const [UseTimeProvider, useTime, useDate] = constate(
     return time;
   },
   (time) => time,
-  (time) => dayjs(time).startOf("day").toISOString()
+  (time) => dayjs(time).startOf('day').toISOString()
 );
