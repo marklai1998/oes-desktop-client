@@ -21,6 +21,7 @@ type Props = {
 export const Layout = ({ children, exam }: Props) => {
   const { user } = useAuth();
   const now = useTime();
+  const dayjsTime = dayjs(now);
 
   const times = useMemo(() => {
     const { from, to } = exam;
@@ -49,6 +50,10 @@ export const Layout = ({ children, exam }: Props) => {
           </Link>
           Current Exam: {exam.name}
         </NameWrapper>
+        <TimeWrapper>
+          <Time>{dayjsTime.format('hh:mm:ss A')}</Time>
+          <Date>{dayjsTime.format('YYYY-MM-DD')}</Date>
+        </TimeWrapper>
         <UserWrapper>
           {user && (
             <Avatar
@@ -117,4 +122,22 @@ const TimeLine = styled(Box)`
     width: 100%;
     align-self: center;
   }
+`;
+
+const TimeWrapper = styled.div`
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-right: 8px;
+`;
+
+const Time = styled.span`
+  margin-right: 8px;
+`;
+
+const Date = styled.div`
+  color: #575757;
 `;

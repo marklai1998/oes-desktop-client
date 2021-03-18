@@ -6,7 +6,7 @@ export const [UserSocketProvider, useSocket] = constate(() => {
   const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    setSocket(io());
+    setSocket(io('http://localhost:3000'));
   }, []);
 
   return { socket };
