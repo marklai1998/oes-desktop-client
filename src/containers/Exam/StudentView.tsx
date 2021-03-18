@@ -5,12 +5,15 @@ import { PopulatedExam } from '../../types/exam';
 import { StreamPreview } from './StreamPreview';
 import * as R from 'ramda';
 import { useUnmount } from 'react-use';
+import { useExamRTC } from './useExamRTC';
 
 type Props = {
   exam: PopulatedExam;
 };
 
 export const StudentView = ({ exam }: Props) => {
+  useExamRTC({ examId: exam._id });
+
   const [selectedStreamId, setSelectedStreamId] = useState<string | null>(null);
 
   const [desktopStream, setDesktopStream] = useState<MediaStream[]>([]);
