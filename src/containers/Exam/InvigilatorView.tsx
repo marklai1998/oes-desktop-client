@@ -36,8 +36,6 @@ export const InvigilatorView = ({ exam }: Props) => {
     [peers, selectedPeerId]
   );
 
-  console.log(selectedPeer);
-
   return (
     <Wrapper>
       <PreviewWrapper>

@@ -1,10 +1,10 @@
+import { useUnmount } from 'react-use';
 import { socketEvent } from './../../constants/socketEvent';
 import { useCallback, useEffect, useState } from 'react';
 import { useSocket } from '../../hooks/useSocket';
 import { PureUser } from '../../types/user';
 import { userTierType } from '../../constants/userTierType';
 import { message } from 'antd';
-import { useMap } from 'react-use';
 import * as R from 'ramda';
 
 const ICE_SERVERS = [
@@ -203,6 +203,11 @@ export const useExamRTC = ({
     console.log('Join exam', examId);
     socket.emit(socketEvent.JOIN_EXAM, { examId });
   }, [streamReady, examId]);
+
+  useUnmount(() => {
+    if (!socket) return;
+    socket.emit(socketEvent.LEAVE_EXAM, { examId });
+  });
 
   useEffect(() => {
     if (!socket) return;
