@@ -16,6 +16,7 @@ import 'antd/dist/antd.css';
 import { Profile } from './containers/Profile';
 import ExamList from './containers/ExamList';
 import { Exam } from './containers/Exam';
+import { useCamera, UseCameraProvider } from './hooks/useCamera';
 
 const mainElement = document.createElement('div');
 mainElement.setAttribute('id', 'root');
@@ -25,7 +26,9 @@ const history = createHashHistory();
 const App = () => {
   const { isAuthing } = useAuth();
   const { socket } = useSocket();
-  return isAuthing || !socket ? (
+  const { initializingCamera } = useCamera();
+
+  return isAuthing || !socket || initializingCamera ? (
     <PageLoading />
   ) : (
     <>
@@ -48,9 +51,11 @@ render(
       <UserAuthProvider>
         <UserSocketProvider>
           <UseTimeProvider>
-            <UseLayoutProvider>
-              <App />
-            </UseLayoutProvider>
+            <UseCameraProvider>
+              <UseLayoutProvider>
+                <App />
+              </UseLayoutProvider>
+            </UseCameraProvider>
           </UseTimeProvider>
         </UserSocketProvider>
       </UserAuthProvider>

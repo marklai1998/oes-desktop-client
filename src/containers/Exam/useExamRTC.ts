@@ -6,7 +6,6 @@ import { userTierType } from '../../constants/userTierType';
 import { message } from 'antd';
 import { useMap } from 'react-use';
 import * as R from 'ramda';
-import { useTime } from '../../hooks/useTime';
 
 const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
@@ -19,15 +18,18 @@ const ICE_SERVERS = [
 export const useExamRTC = ({
   examId,
   mediaStreams = [],
+  streamReady = false,
 }: {
   examId: string;
   mediaStreams?: MediaStream[];
+  streamReady?: boolean;
 }) => {
   const { socket } = useSocket();
   const [peers, { set: setPeer, remove: removePeer }] = useMap<{
     [peerId: string]: {
       connection: RTCPeerConnection;
       user: PureUser;
+      streams: MediaStream[];
     };
   }>({});
 
@@ -58,7 +60,7 @@ export const useExamRTC = ({
         iceServers: ICE_SERVERS,
       });
 
-      setPeer(peerId, { connection: peerConnection, user });
+      setPeer(peerId, { connection: peerConnection, user, streams: [] });
 
       peerConnection.onicecandidate = (event) => {
         if (!event.candidate) return;
@@ -70,17 +72,36 @@ export const useExamRTC = ({
       };
 
       peerConnection.onconnectionstatechange = (e) => {
+        const connectionState = e.target
+          ? (e.target as RTCPeerConnection).connectionState
+          : 'UNKNOWN';
         console.log(
           'Connection status changed for',
           peerId,
           ' to ',
-          e.target ? (e.target as RTCPeerConnection).connectionState : 'UNKNOWN'
+          connectionState
         );
       };
 
-      peerConnection.onaddstream = (event) => {
-        console.log('onAddStream', event);
+      peerConnection.ontrack = (event) => {
+        console.log('add Stream', event);
+
+        setPeer(peerId, {
+          connection: peerConnection,
+          user,
+          streams: [...event.streams],
+        });
       };
+
+      if (!R.isEmpty(mediaStreams)) {
+        const videoTrack = mediaStreams[0].getVideoTracks()[0];
+        if (videoTrack) {
+          peerConnection.addTrack(videoTrack, ...mediaStreams);
+        }
+      } else {
+        // teacher has no stream, connection won't happen without stream
+        peerConnection.addTransceiver('video');
+      }
 
       if (shouldCreateOffer) {
         console.log('Creating RTC offer to ', peerId);
@@ -96,7 +117,7 @@ export const useExamRTC = ({
         });
       }
     },
-    [peers, setPeer]
+    [peers, setPeer, mediaStreams]
   );
 
   const handleRemovePeer = useCallback(
@@ -163,10 +184,10 @@ export const useExamRTC = ({
   );
 
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !streamReady) return;
     console.log('Join exam', examId);
     socket.emit(socketEvent.JOIN_EXAM, { examId });
-  }, [examId]);
+  }, [streamReady, examId]);
 
   useEffect(() => {
     if (!socket) return;
@@ -192,15 +213,5 @@ export const useExamRTC = ({
     socket.on(socketEvent.REMOVE_PEER, handleRemovePeer);
   }, [handleRemovePeer]);
 
-  useEffect(() => {
-    R.keys(peers).forEach((peerId) => {
-      const peer = peers[peerId];
-      if (peer.user.tier !== userTierType.STUDENT) {
-        mediaStreams.forEach((stream) => {
-          console.log('Add stream');
-          peer.connection.addStream(stream);
-        });
-      }
-    });
-  }, [mediaStreams]);
+  return { peers };
 };

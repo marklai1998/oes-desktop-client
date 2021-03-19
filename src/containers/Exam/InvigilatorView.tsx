@@ -7,7 +7,7 @@ type Props = {
 };
 
 export const InvigilatorView = ({ exam }: Props) => {
-  useExamRTC({ examId: exam._id });
-
+  const { peers } = useExamRTC({ examId: exam._id, streamReady: true });
+  console.log(peers);
   return <div>InvigilatorView</div>;
 };

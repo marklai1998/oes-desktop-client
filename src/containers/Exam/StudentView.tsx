@@ -6,6 +6,7 @@ import { StreamPreview } from './StreamPreview';
 import * as R from 'ramda';
 import { useUnmount } from 'react-use';
 import { useExamRTC } from './useExamRTC';
+import { useCamera } from '../../hooks/useCamera';
 
 type Props = {
   exam: PopulatedExam;
@@ -13,7 +14,7 @@ type Props = {
 
 export const StudentView = ({ exam }: Props) => {
   const [selectedStreamId, setSelectedStreamId] = useState<string | null>(null);
-
+  const { cameraList } = useCamera();
   const [desktopStream, setDesktopStream] = useState<MediaStream[]>([]);
   const [cameraStream, setCameraStream] = useState<MediaStream[]>([]);
 
@@ -22,7 +23,13 @@ export const StudentView = ({ exam }: Props) => {
     cameraStream,
   ]);
 
-  useExamRTC({ examId: exam._id, mediaStreams: allStreams });
+  useExamRTC({
+    examId: exam._id,
+    mediaStreams: allStreams,
+    streamReady:
+      !R.isEmpty(desktopStream) &&
+      (R.isEmpty(cameraList) ? true : !R.isEmpty(cameraStream)),
+  });
 
   const initDesktopStream = async () => {
     const sources = await desktopCapturer.getSources({ types: ['screen'] });
