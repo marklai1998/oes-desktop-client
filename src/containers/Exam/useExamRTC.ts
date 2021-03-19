@@ -6,6 +6,7 @@ import { PureUser } from '../../types/user';
 import { userTierType } from '../../constants/userTierType';
 import { message } from 'antd';
 import * as R from 'ramda';
+import { useAuth } from '../../hooks/useAuth';
 
 const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
@@ -25,6 +26,7 @@ export const useExamRTC = ({
   streamReady?: boolean;
 }) => {
   const { socket } = useSocket();
+  const { tier } = useAuth();
   const [peers, setPeers] = useState<{
     [peerId: string]: {
       connection: RTCPeerConnection;
@@ -118,12 +120,9 @@ export const useExamRTC = ({
         peerConnection.addTransceiver('video');
       }
 
-      if (shouldCreateOffer) {
+      if (tier === userTierType.STUDENT) {
         console.log('Creating RTC offer to ', peerId);
-        const localDescription = await peerConnection.createOffer({
-          offerToReceiveAudio: true,
-          offerToReceiveVideo: true,
-        });
+        const localDescription = await peerConnection.createOffer();
 
         peerConnection.setLocalDescription(localDescription);
         socket.emit(socketEvent.RELAY_SESSION_DESCRIPTION, {
