@@ -1,5 +1,5 @@
 import { socketEvent } from './../../constants/socketEvent';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSocket } from '../../hooks/useSocket';
 import { PureUser } from '../../types/user';
 import { userTierType } from '../../constants/userTierType';
@@ -25,7 +25,7 @@ export const useExamRTC = ({
   streamReady?: boolean;
 }) => {
   const { socket } = useSocket();
-  const [peers, { set: setPeer, remove: removePeer }] = useMap<{
+  const [peers, setPeers] = useState<{
     [peerId: string]: {
       connection: RTCPeerConnection;
       user: PureUser;
@@ -60,7 +60,14 @@ export const useExamRTC = ({
         iceServers: ICE_SERVERS,
       });
 
-      setPeer(peerId, { connection: peerConnection, user, streams: [] });
+      setPeers((prev) => ({
+        ...prev,
+        [peerId]: {
+          connection: peerConnection,
+          user,
+          streams: [],
+        },
+      }));
 
       peerConnection.onicecandidate = (event) => {
         if (!event.candidate) return;
@@ -86,18 +93,26 @@ export const useExamRTC = ({
       peerConnection.ontrack = (event) => {
         console.log('add Stream', event);
 
-        setPeer(peerId, {
-          connection: peerConnection,
-          user,
-          streams: [...event.streams],
+        setPeers((prev) => {
+          const item = prev[peerId];
+
+          return {
+            ...prev,
+            [peerId]: {
+              ...item,
+              streams: [...item.streams, ...event.streams],
+            },
+          };
         });
       };
 
       if (!R.isEmpty(mediaStreams)) {
-        const videoTrack = mediaStreams[0].getVideoTracks()[0];
-        if (videoTrack) {
-          peerConnection.addTrack(videoTrack, ...mediaStreams);
-        }
+        mediaStreams.forEach((stream) => {
+          const videoTrack = stream.getVideoTracks()[0];
+          if (videoTrack) {
+            peerConnection.addTrack(videoTrack, stream);
+          }
+        });
       } else {
         // teacher has no stream, connection won't happen without stream
         peerConnection.addTransceiver('video');
@@ -117,7 +132,7 @@ export const useExamRTC = ({
         });
       }
     },
-    [peers, setPeer, mediaStreams]
+    [peers, mediaStreams]
   );
 
   const handleRemovePeer = useCallback(
@@ -126,9 +141,9 @@ export const useExamRTC = ({
 
       const peer = peers[peerId];
       peer && peer.connection.close();
-      removePeer(peerId);
+      setPeers((prev) => R.dissoc(peerId, prev));
     },
-    [peers, removePeer]
+    [peers]
   );
 
   const handleSessionDescription = useCallback(
