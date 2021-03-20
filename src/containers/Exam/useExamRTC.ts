@@ -36,15 +36,7 @@ export const useExamRTC = ({
   }>({});
 
   const handleAddPeer = useCallback(
-    async ({
-      peerId,
-      user,
-      shouldCreateOffer,
-    }: {
-      peerId: string;
-      user: PureUser;
-      shouldCreateOffer: boolean;
-    }) => {
+    async ({ peerId, user }: { peerId: string; user: PureUser }) => {
       if (!socket) return;
 
       console.log('Add peer', peerId, user);
