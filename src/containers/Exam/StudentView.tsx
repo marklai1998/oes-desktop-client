@@ -7,7 +7,7 @@ import { useCamera } from '../../hooks/useCamera';
 import { StreamListView } from './StreamListView';
 import { useAuth } from '../../hooks/useAuth';
 import { message } from 'antd';
-import { useUpdateEffect } from 'react-use';
+import { usePreviousDistinct, useUpdateEffect } from 'react-use';
 
 type Props = {
   exam: PopulatedExam;
@@ -44,8 +44,14 @@ export const StudentView = ({ exam }: Props) => {
     [peers]
   );
 
+  const prevLength = usePreviousDistinct(remoteStream.length);
+
   useUpdateEffect(() => {
-    message.info('Remote camera has been added to the exam');
+    if (remoteStream.length < Number(prevLength)) {
+      message.info('Remote camera has been removed to the exam');
+    } else {
+      message.info('Remote camera has been added to the exam');
+    }
   }, [remoteStream.length]);
 
   const initDesktopStream = async () => {
