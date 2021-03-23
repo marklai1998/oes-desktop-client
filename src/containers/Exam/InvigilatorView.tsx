@@ -42,7 +42,7 @@ export const InvigilatorView = ({ exam }: Props) => {
         {selectedPeer && <StreamListView streams={selectedPeer.streams} />}
       </PreviewWrapper>
       <UserWrapper>
-        {peersArray.map(({ socketId, streams }) => (
+        {peersArray.map(({ socketId, streams, user: { username } }) => (
           <PreviewListItem
             key={socketId}
             onClick={() => {
@@ -50,6 +50,7 @@ export const InvigilatorView = ({ exam }: Props) => {
             }}
           >
             <Preview stream={streams[0]} key={socketId} />
+            <NameWrapper>{username}</NameWrapper>
           </PreviewListItem>
         ))}
       </UserWrapper>
@@ -85,9 +86,20 @@ const PreviewListItem = styled.div`
   box-shadow: inset 0px 0px 0px 1px #4c4c4c;
   box-sizing: border-box;
   cursor: pointer;
+  position: relative;
 `;
 
 const Preview = styled(StreamPreview)`
   height: 100%;
   width: 100%;
+`;
+
+const NameWrapper = styled.div`
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #00000070;
+  color: #fff;
+  padding: 4px;
 `;
