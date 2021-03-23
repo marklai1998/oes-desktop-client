@@ -1,11 +1,13 @@
 import { desktopCapturer } from 'electron';
 import React, { useEffect, useMemo, useState } from 'react';
 import { PopulatedExam } from '../../types/exam';
-import { StreamPreview } from './StreamPreview';
 import * as R from 'ramda';
 import { useExamRTC } from './useExamRTC';
 import { useCamera } from '../../hooks/useCamera';
 import { StreamListView } from './StreamListView';
+import { useAuth } from '../../hooks/useAuth';
+import { message } from 'antd';
+import { useUpdateEffect } from 'react-use';
 
 type Props = {
   exam: PopulatedExam;
@@ -13,6 +15,7 @@ type Props = {
 
 export const StudentView = ({ exam }: Props) => {
   const { cameraList } = useCamera();
+  const { user: self } = useAuth();
   const [desktopStream, setDesktopStream] = useState<MediaStream[]>([]);
   const [cameraStream, setCameraStream] = useState<MediaStream[]>([]);
 
@@ -21,13 +24,29 @@ export const StudentView = ({ exam }: Props) => {
     cameraStream,
   ]);
 
-  useExamRTC({
+  const { peers } = useExamRTC({
     examId: exam._id,
     mediaStreams: allStreams,
     streamReady:
       !R.isEmpty(desktopStream) &&
       (R.isEmpty(cameraList) ? true : !R.isEmpty(cameraStream)),
   });
+
+  const remoteStream = useMemo(
+    () =>
+      R.keys(peers).reduce<MediaStream[]>((acc, key) => {
+        const peer = peers[key];
+        if (self && peer.user._id === self._id) {
+          return [...acc, ...peer.streams];
+        }
+        return acc;
+      }, []),
+    [peers]
+  );
+
+  useUpdateEffect(() => {
+    message.info('Remote camera has been added to the exam');
+  }, [remoteStream.length]);
 
   const initDesktopStream = async () => {
     const sources = await desktopCapturer.getSources({ types: ['screen'] });
@@ -62,5 +81,5 @@ export const StudentView = ({ exam }: Props) => {
     initCameraStream();
   }, []);
 
-  return <StreamListView streams={allStreams} />;
+  return <StreamListView streams={[...allStreams, ...remoteStream]} />;
 };

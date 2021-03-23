@@ -26,7 +26,7 @@ export const useExamRTC = ({
   streamReady?: boolean;
 }) => {
   const { socket } = useSocket();
-  const { tier } = useAuth();
+  const { isStudent, user: self } = useAuth();
   const [peers, setPeers] = useState<{
     [peerId: string]: {
       connection: RTCPeerConnection;
@@ -112,7 +112,10 @@ export const useExamRTC = ({
         peerConnection.addTransceiver('video');
       }
 
-      if (tier === userTierType.STUDENT) {
+      if (
+        isStudent &&
+        (user.tier === userTierType.TEACHER || user.tier === userTierType.ADMIN)
+      ) {
         console.log('Creating RTC offer to ', peerId);
         const localDescription = await peerConnection.createOffer();
 

@@ -15,26 +15,50 @@ export const InvigilatorView = ({ exam }: Props) => {
   const { peers } = useExamRTC({ examId: exam._id, streamReady: true });
   const [selectedPeerId, setSelectedPeerId] = useState<string | null>(null);
 
-  const peersArray = useMemo(
-    () =>
-      R.keys(peers).reduce<
-        {
-          connection: RTCPeerConnection;
-          user: PureUser;
-          streams: MediaStream[];
-          socketId: string;
-        }[]
-      >((acc, socketId) => {
-        const item = peers[socketId];
-        return [...acc, { socketId: String(socketId), ...item }];
-      }, []),
-    [peers]
-  );
+  const peersArray = useMemo(() => {
+    const streamsArray = R.keys(peers).reduce<
+      {
+        connection: RTCPeerConnection;
+        user: PureUser;
+        streams: MediaStream[];
+        socketId: string;
+      }[]
+    >((acc, socketId) => {
+      const item = peers[socketId];
+      return [...acc, { socketId: String(socketId), ...item }];
+    }, []);
+    return streamsArray.reduce<typeof streamsArray>((acc, item) => {
+      const index = R.findIndex(
+        ({ user: { _id } }) => _id === item.user._id,
+        acc
+      );
+
+      if (index !== -1) {
+        const originalItem = acc[index];
+        console.log('hi', originalItem, item, [
+          ...originalItem.streams,
+          ...item.streams,
+        ]);
+        return R.assocPath(
+          [index, 'streams'],
+          [...originalItem.streams, ...item.streams],
+          acc
+        );
+      }
+
+      return [...acc, item];
+    }, []);
+  }, [peers]);
 
   const selectedPeer = useMemo(
-    () => (selectedPeerId ? peers[selectedPeerId] : null),
-    [peers, selectedPeerId]
+    () =>
+      selectedPeerId
+        ? R.find(({ socketId }) => socketId === selectedPeerId, peersArray)
+        : null,
+    [peersArray, selectedPeerId]
   );
+
+  console.log(selectedPeer);
 
   return (
     <Wrapper>
