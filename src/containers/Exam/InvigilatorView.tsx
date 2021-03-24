@@ -13,9 +13,9 @@ type Props = {
 
 export const InvigilatorView = ({ exam }: Props) => {
   const { peers } = useExamRTC({ examId: exam._id, streamReady: true });
-  const [selectedPeerId, setSelectedPeerId] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
-  const peersArray = useMemo(() => {
+  const userArray = useMemo(() => {
     const streamsArray = R.keys(peers).reduce<
       {
         connection: RTCPeerConnection;
@@ -27,53 +27,59 @@ export const InvigilatorView = ({ exam }: Props) => {
       const item = peers[socketId];
       return [...acc, { socketId: String(socketId), ...item }];
     }, []);
-    return streamsArray.reduce<typeof streamsArray>((acc, item) => {
-      const index = R.findIndex(
-        ({ user: { _id } }) => _id === item.user._id,
-        acc
+
+    const groupedStream = R.groupBy(({ user: { _id } }) => _id, streamsArray);
+
+    return R.keys(groupedStream).reduce<
+      {
+        user: PureUser;
+        streams: MediaStream[];
+      }[]
+    >((acc, userId) => {
+      const streams = groupedStream[userId];
+
+      const groupedItem = streams.reduce<{
+        user: PureUser;
+        streams: MediaStream[];
+      }>(
+        (acc, item) => {
+          return {
+            user: item.user,
+            streams: [...acc.streams, ...item.streams],
+          };
+        },
+        {
+          user: streams[0].user,
+          streams: [],
+        }
       );
 
-      if (index !== -1) {
-        const originalItem = acc[index];
-        console.log('hi', originalItem, item, [
-          ...originalItem.streams,
-          ...item.streams,
-        ]);
-        return R.assocPath(
-          [index, 'streams'],
-          [...originalItem.streams, ...item.streams],
-          acc
-        );
-      }
-
-      return [...acc, item];
+      return [...acc, groupedItem];
     }, []);
   }, [peers]);
 
-  const selectedPeer = useMemo(
+  const selectedUser = useMemo(
     () =>
-      selectedPeerId
-        ? R.find(({ socketId }) => socketId === selectedPeerId, peersArray)
+      selectedUserId
+        ? R.find(({ user: { _id } }) => _id === selectedUserId, userArray)
         : null,
-    [peersArray, selectedPeerId]
+    [userArray, selectedUserId]
   );
-
-  console.log(selectedPeer);
 
   return (
     <Wrapper>
       <PreviewWrapper>
-        {selectedPeer && <StreamListView streams={selectedPeer.streams} />}
+        {selectedUser && <StreamListView streams={selectedUser.streams} />}
       </PreviewWrapper>
       <UserWrapper>
-        {peersArray.map(({ socketId, streams, user: { username } }) => (
+        {userArray.map(({ streams, user: { _id, username } }) => (
           <PreviewListItem
-            key={socketId}
+            key={_id}
             onClick={() => {
-              setSelectedPeerId(socketId);
+              setSelectedUserId(_id);
             }}
           >
-            <Preview stream={streams[0]} key={socketId} />
+            <Preview stream={streams[0]} key={_id} />
             <NameWrapper>{username}</NameWrapper>
           </PreviewListItem>
         ))}
