@@ -62,6 +62,7 @@ export const Layout = ({ children, exam }: Props) => {
                 verticalAlign: 'middle',
                 cursor: 'pointer',
               }}
+              src={`http://localhost:3000/uploads/icons/${user._id}`}
             >
               {user.username}
             </Avatar>
