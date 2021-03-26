@@ -1,7 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useRafLoop } from 'react-use';
 import styled from 'styled-components';
-import { detectAllFaces, nets, env, FaceDetection } from 'face-api.js';
+import {
+  detectAllFaces,
+  FaceDetection,
+  FaceMatcher,
+  WithFaceLandmarks,
+  WithFaceDescriptor,
+  FaceLandmarks68,
+} from 'face-api.js';
 import { debounce } from 'throttle-debounce';
 
 type Props = {
@@ -9,8 +16,19 @@ type Props = {
   onFrame?: (imageData: ImageData) => void;
   faceDetection?: boolean;
   onFaceDetection?: (
-    faces: { data: FaceDetection; image: ImageData }[]
+    faces: {
+      data: WithFaceDescriptor<
+        WithFaceLandmarks<
+          {
+            detection: FaceDetection;
+          },
+          FaceLandmarks68
+        >
+      >;
+      image: ImageData;
+    }[]
   ) => void;
+  faceMatcher?: FaceMatcher;
 };
 
 export const StreamPreview = ({
@@ -18,12 +36,11 @@ export const StreamPreview = ({
   onFrame,
   faceDetection = false,
   onFaceDetection,
+  faceMatcher,
   ...rest
 }: Props) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  const [modelInitialized, setModelInitialized] = useState(false);
 
   const [loopStop, loopStart] = useRafLoop(
     debounce(1000, async () => {
@@ -53,16 +70,18 @@ export const StreamPreview = ({
         );
         onFrame && onFrame(imageData);
 
-        if (modelInitialized && onFaceDetection) {
-          const faces = await detectAllFaces(canvasElement);
+        if (onFaceDetection) {
+          const faces = await detectAllFaces(canvasElement)
+            .withFaceLandmarks()
+            .withFaceDescriptors();
 
           onFaceDetection(
             faces.map((data) => {
               const imageData = canvas2D.getImageData(
-                data.box.x,
-                data.box.y,
-                data.box.width,
-                data.box.height
+                data.alignedRect.box.x,
+                data.alignedRect.box.y,
+                data.alignedRect.box.width,
+                data.alignedRect.box.height
               );
               return { data, image: imageData };
             })
@@ -73,28 +92,12 @@ export const StreamPreview = ({
     false
   );
 
-  const initFaceApi = async () => {
-    env.monkeyPatch({
-      Canvas: HTMLCanvasElement,
-      Image: HTMLImageElement,
-      ImageData: ImageData,
-      Video: HTMLVideoElement,
-      createCanvasElement: () => document.createElement('canvas'),
-      createImageElement: () => document.createElement('img'),
-    });
-    await nets.ssdMobilenetv1.loadFromUri(
-      'http://localhost:3000/models/ssd_mobilenetv1_model-weights_manifest.json'
-    );
-    setModelInitialized(true);
-  };
-
   useEffect(() => {
     if (!videoRef.current) return;
     videoRef.current.srcObject = stream;
     videoRef.current.onloadedmetadata = (e) =>
       videoRef.current && videoRef.current.play();
     faceDetection && loopStart();
-    faceDetection && initFaceApi();
     return () => {
       loopStop();
     };

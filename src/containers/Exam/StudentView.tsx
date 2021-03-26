@@ -1,5 +1,5 @@
 import { desktopCapturer } from 'electron';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { PopulatedExam } from '../../types/exam';
 import * as R from 'ramda';
 import { useExamRTC } from './useExamRTC';
@@ -9,6 +9,15 @@ import { useAuth } from '../../hooks/useAuth';
 import { message } from 'antd';
 import { usePreviousDistinct, useUpdateEffect } from 'react-use';
 import { mediaStreamType } from '../../constants/mediaStreamType';
+import {
+  detectAllFaces,
+  FaceMatcher,
+  env,
+  nets,
+  LabeledFaceDescriptors,
+} from 'face-api.js';
+import { PageLoading } from '../../components/PageLoading';
+import styled from 'styled-components';
 
 type Props = {
   exam: PopulatedExam;
@@ -17,8 +26,12 @@ type Props = {
 export const StudentView = ({ exam }: Props) => {
   const { cameraList } = useCamera();
   const { user: self } = useAuth();
+  const iconRef = useRef<HTMLImageElement>(null);
   const [desktopStream, setDesktopStream] = useState<MediaStream[]>([]);
   const [cameraStream, setCameraStream] = useState<MediaStream[]>([]);
+  const [faceMatcher, setFaceMatcher] = useState<FaceMatcher | undefined>();
+  const [modelInitialized, setModelInitialized] = useState(false);
+  const [referenceIconLoaded, setReferenceIconLoaded] = useState(false);
 
   const allStreams = useMemo(
     () => [
@@ -101,10 +114,85 @@ export const StudentView = ({ exam }: Props) => {
     setCameraStream([streams]);
   };
 
+  const initFaceApi = async () => {
+    env.monkeyPatch({
+      Canvas: HTMLCanvasElement,
+      Image: HTMLImageElement,
+      ImageData: ImageData,
+      Video: HTMLVideoElement,
+      createCanvasElement: () => document.createElement('canvas'),
+      createImageElement: () => document.createElement('img'),
+    });
+    await nets.ssdMobilenetv1.loadFromUri(
+      'http://localhost:3000/models/ssd_mobilenetv1_model-weights_manifest.json'
+    );
+    await nets.faceLandmark68Net.loadFromUri(
+      'http://localhost:3000/models/face_landmark_68_model-weights_manifest.json'
+    );
+    await nets.faceRecognitionNet.loadFromUri(
+      'http://localhost:3000/models/face_recognition_model-weights_manifest.json'
+    );
+
+    setModelInitialized(true);
+  };
+
   useEffect(() => {
     initDesktopStream();
     initCameraStream();
+    initFaceApi();
   }, []);
 
-  return <StreamListView streams={[...allStreams, ...remoteStream]} />;
+  const initFaceMatcher = async () => {
+    if (!iconRef.current || !self) return;
+    const results = await detectAllFaces(iconRef.current)
+      .withFaceLandmarks()
+      .withFaceDescriptors();
+    if (!results.length) {
+      return;
+    }
+
+    // create FaceMatcher with automatically assigned labels
+    // from the detection results for the reference image
+    const faceMatcher = new FaceMatcher(
+      new LabeledFaceDescriptors(
+        self.username,
+        results.map(({ descriptor }) => descriptor)
+      )
+    );
+    setFaceMatcher(faceMatcher);
+  };
+
+  useEffect(() => {
+    modelInitialized && referenceIconLoaded && initFaceMatcher();
+  }, [iconRef, modelInitialized, referenceIconLoaded]);
+
+  return (
+    <>
+      {self && (
+        <Icon
+          ref={iconRef}
+          src={`http://localhost:3000/uploads/icons/${self._id}`}
+          onLoad={() => {
+            console.log('ref image loaded');
+            setReferenceIconLoaded(true);
+          }}
+          crossOrigin="anonymous"
+        />
+      )}
+      {modelInitialized ? (
+        <StreamListView
+          streams={[...allStreams, ...remoteStream]}
+          faceMatcher={faceMatcher}
+        />
+      ) : (
+        <PageLoading />
+      )}
+    </>
+  );
 };
+
+const Icon = styled.img`
+  display: none;
+  position: fixed;
+  z-index: 10000;
+`;

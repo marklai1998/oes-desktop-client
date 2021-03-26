@@ -4,17 +4,29 @@ import styled from 'styled-components';
 import * as R from 'ramda';
 import { StreamPreview } from './StreamPreview';
 import { mediaStreamType } from '../../constants/mediaStreamType';
-import { FaceDetection } from 'face-api.js';
+import {
+  FaceDetection,
+  FaceMatcher,
+  WithFaceDescriptor,
+  WithFaceLandmarks,
+  FaceLandmarks68,
+} from 'face-api.js';
 import { FaceList } from './FaceList';
 
 type Props = {
   streams: { stream: MediaStream; type: mediaStreamType }[];
+  faceMatcher?: FaceMatcher;
 };
 
-export const StreamListView = ({ streams }: Props) => {
+export const StreamListView = ({ streams, faceMatcher }: Props) => {
   const [selectedStreamId, setSelectedStreamId] = useState<string | null>(null);
   const [faceDetection, setFaceDetection] = useState<{
-    [key: string]: { data: FaceDetection; image: ImageData }[];
+    [key: string]: {
+      data: WithFaceDescriptor<
+        WithFaceLandmarks<{ detection: FaceDetection }, FaceLandmarks68>
+      >;
+      image: ImageData;
+    }[];
   }>({});
 
   useUnmount(() => {
@@ -55,18 +67,19 @@ export const StreamListView = ({ streams }: Props) => {
             <Preview
               stream={stream}
               faceDetection={type === mediaStreamType.CAMERA}
-              onFaceDetection={(
-                faces: { data: FaceDetection; image: ImageData }[]
-              ) => {
+              onFaceDetection={(faces) => {
                 setFaceDetection((prev) => R.assoc(stream.id, faces, prev));
               }}
+              faceMatcher={faceMatcher}
             />
           </PreviewListItem>
         ))}
       </PreviewList>
       <EnlargedPreviewWrapper>
         {selectedStream && <Preview stream={selectedStream.stream} />}
-        {selectedStreamFaces && <FaceList list={selectedStreamFaces} />}
+        {selectedStreamFaces && (
+          <FaceList list={selectedStreamFaces} faceMatcher={faceMatcher} />
+        )}
       </EnlargedPreviewWrapper>
     </>
   );
