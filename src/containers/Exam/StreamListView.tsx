@@ -3,16 +3,22 @@ import { useUnmount } from 'react-use';
 import styled from 'styled-components';
 import * as R from 'ramda';
 import { StreamPreview } from './StreamPreview';
+import { mediaStreamType } from '../../constants/mediaStreamType';
+import { FaceDetection } from 'face-api.js';
+import { FaceList } from './FaceList';
 
 type Props = {
-  streams: MediaStream[];
+  streams: { stream: MediaStream; type: mediaStreamType }[];
 };
 
 export const StreamListView = ({ streams }: Props) => {
   const [selectedStreamId, setSelectedStreamId] = useState<string | null>(null);
+  const [faceDetection, setFaceDetection] = useState<{
+    [key: string]: { data: FaceDetection; image: ImageData }[];
+  }>({});
 
   useUnmount(() => {
-    streams.forEach((stream) => {
+    streams.forEach(({ stream }) => {
       const tracks = stream.getTracks();
 
       tracks.forEach((track) => {
@@ -23,30 +29,44 @@ export const StreamListView = ({ streams }: Props) => {
 
   useEffect(() => {
     const firstStream = R.head(streams);
-    setSelectedStreamId(firstStream ? firstStream.id : null);
+    setSelectedStreamId(firstStream ? firstStream.stream.id : null);
   }, [streams]);
 
   const selectedStream = useMemo(
-    () => R.find(({ id }) => id === selectedStreamId, streams),
+    () => R.find(({ stream: { id } }) => id === selectedStreamId, streams),
     [selectedStreamId, streams]
+  );
+
+  const selectedStreamFaces = useMemo(
+    () => (selectedStreamId ? R.prop(selectedStreamId, faceDetection) : null),
+    [selectedStreamId, faceDetection]
   );
 
   return (
     <>
       <PreviewList>
-        {streams.map((stream) => (
+        {streams.map(({ stream, type }) => (
           <PreviewListItem
             key={stream.id}
             onClick={() => {
               setSelectedStreamId(stream.id);
             }}
           >
-            <Preview stream={stream} />
+            <Preview
+              stream={stream}
+              faceDetection={type === mediaStreamType.CAMERA}
+              onFaceDetection={(
+                faces: { data: FaceDetection; image: ImageData }[]
+              ) => {
+                setFaceDetection((prev) => R.assoc(stream.id, faces, prev));
+              }}
+            />
           </PreviewListItem>
         ))}
       </PreviewList>
       <EnlargedPreviewWrapper>
-        {selectedStream && <Preview stream={selectedStream} />}
+        {selectedStream && <Preview stream={selectedStream.stream} />}
+        {selectedStreamFaces && <FaceList list={selectedStreamFaces} />}
       </EnlargedPreviewWrapper>
     </>
   );
@@ -80,5 +100,6 @@ const Preview = styled(StreamPreview)`
 const EnlargedPreviewWrapper = styled.div`
   width: 100%;
   height: 100%;
+  display: flex;
   overflow: auto;
 `;

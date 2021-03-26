@@ -8,6 +8,7 @@ import { StreamListView } from './StreamListView';
 import { useAuth } from '../../hooks/useAuth';
 import { message } from 'antd';
 import { usePreviousDistinct, useUpdateEffect } from 'react-use';
+import { mediaStreamType } from '../../constants/mediaStreamType';
 
 type Props = {
   exam: PopulatedExam;
@@ -19,14 +20,23 @@ export const StudentView = ({ exam }: Props) => {
   const [desktopStream, setDesktopStream] = useState<MediaStream[]>([]);
   const [cameraStream, setCameraStream] = useState<MediaStream[]>([]);
 
-  const allStreams = useMemo(() => [...cameraStream, ...desktopStream], [
-    desktopStream,
-    cameraStream,
-  ]);
+  const allStreams = useMemo(
+    () => [
+      ...cameraStream.map((stream) => ({
+        stream,
+        type: mediaStreamType.CAMERA,
+      })),
+      ...desktopStream.map((stream) => ({
+        stream,
+        type: mediaStreamType.SCREEN,
+      })),
+    ],
+    [desktopStream, cameraStream]
+  );
 
   const { peers } = useExamRTC({
     examId: exam._id,
-    mediaStreams: allStreams,
+    mediaStreams: R.pluck('stream', allStreams),
     streamReady:
       !R.isEmpty(desktopStream) &&
       (R.isEmpty(cameraList) ? true : !R.isEmpty(cameraStream)),
@@ -34,13 +44,22 @@ export const StudentView = ({ exam }: Props) => {
 
   const remoteStream = useMemo(
     () =>
-      R.keys(peers).reduce<MediaStream[]>((acc, key) => {
-        const peer = peers[key];
-        if (self && peer.user._id === self._id) {
-          return [...acc, ...peer.streams];
-        }
-        return acc;
-      }, []),
+      R.keys(peers).reduce<{ stream: MediaStream; type: mediaStreamType }[]>(
+        (acc, key) => {
+          const peer = peers[key];
+          if (self && peer.user._id === self._id) {
+            return [
+              ...acc,
+              ...peer.streams.map((stream) => ({
+                stream,
+                type: mediaStreamType.CAMERA,
+              })),
+            ];
+          }
+          return acc;
+        },
+        []
+      ),
     [peers]
   );
 

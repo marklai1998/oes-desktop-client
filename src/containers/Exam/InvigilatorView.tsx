@@ -6,6 +6,7 @@ import * as R from 'ramda';
 import { PureUser } from '../../types/user';
 import { StreamPreview } from './StreamPreview';
 import { StreamListView } from './StreamListView';
+import { mediaStreamType } from '../../constants/mediaStreamType';
 
 type Props = {
   exam: PopulatedExam;
@@ -69,7 +70,14 @@ export const InvigilatorView = ({ exam }: Props) => {
   return (
     <Wrapper>
       <PreviewWrapper>
-        {selectedUser && <StreamListView streams={selectedUser.streams} />}
+        {selectedUser && (
+          <StreamListView
+            streams={selectedUser.streams.map((stream) => ({
+              stream,
+              type: mediaStreamType.UNKNOWN,
+            }))}
+          />
+        )}
       </PreviewWrapper>
       <UserWrapper>
         {userArray.map(({ streams, user: { _id, username } }) => (
