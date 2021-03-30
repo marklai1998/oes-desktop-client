@@ -10,7 +10,7 @@ import { mediaStreamType } from '../../constants/mediaStreamType';
 import { useSocket } from '../../hooks/useSocket';
 import { examAlertType } from '../../constants/examAlertType';
 import { socketEvent } from './../../constants/socketEvent';
-import { UsergroupAddOutlined } from '@ant-design/icons';
+import { UsergroupAddOutlined, CheckOutlined } from '@ant-design/icons';
 
 type Props = {
   exam: PopulatedExam;
@@ -20,19 +20,22 @@ export const InvigilatorView = ({ exam }: Props) => {
   const { peers } = useExamRTC({ examId: exam._id, streamReady: true });
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const { socket } = useSocket();
-  const [userAlert, setUserAlert] = useState<{
-    [id: string]: examAlertType[];
+  const [userStatus, setUserStatus] = useState<{
+    [id: string]: {
+      alert: examAlertType[];
+      verified: boolean;
+    };
   }>({});
 
-  const handleExamAlert = useCallback(({ peerId, alert }) => {
-    setUserAlert((perv) => R.assoc(peerId, alert, perv));
+  const handlePeerStatus = useCallback(({ peerId, ...rest }) => {
+    setUserStatus((perv) => R.assoc(peerId, rest, perv));
   }, []);
 
   useEffect(() => {
     if (!socket) return;
-    socket.off(socketEvent.EXAM_ALERT);
-    socket.on(socketEvent.EXAM_ALERT, handleExamAlert);
-  }, [handleExamAlert]);
+    socket.off(socketEvent.PEER_STATUS);
+    socket.on(socketEvent.PEER_STATUS, handlePeerStatus);
+  }, [handlePeerStatus]);
 
   const userArray = useMemo(() => {
     const streamsArray = R.keys(peers).reduce<
@@ -42,24 +45,34 @@ export const InvigilatorView = ({ exam }: Props) => {
         streams: MediaStream[];
         socketId: string;
         alert: examAlertType[];
+        verified: boolean;
       }[]
     >((acc, socketId) => {
       const item = peers[socketId];
-      const alert = R.propOr<
-        examAlertType[],
-        typeof userAlert,
-        examAlertType[]
-      >([], String(socketId), userAlert);
-      return [...acc, { socketId: String(socketId), alert, ...item }];
+
+      const alert = R.pathOr<examAlertType[]>(
+        [],
+        [String(socketId), 'alert'],
+        userStatus
+      );
+
+      const verified = R.pathOr<boolean>(
+        false,
+        [String(socketId), 'verified'],
+        userStatus
+      );
+
+      return [...acc, { socketId: String(socketId), alert, verified, ...item }];
     }, []);
 
     const groupedStream = R.groupBy(({ user: { _id } }) => _id, streamsArray);
-
+    console.log('diu', streamsArray);
     return R.keys(groupedStream).reduce<
       {
         user: PureUser;
         streams: MediaStream[];
         alert: examAlertType[];
+        verified: boolean;
       }[]
     >((acc, userId) => {
       const streams = groupedStream[userId];
@@ -68,24 +81,27 @@ export const InvigilatorView = ({ exam }: Props) => {
         user: PureUser;
         streams: MediaStream[];
         alert: examAlertType[];
+        verified: boolean;
       }>(
         (acc, item) => {
           return {
             user: item.user,
             streams: [...acc.streams, ...item.streams],
             alert: [...acc.alert, ...item.alert],
+            verified: acc.verified || item.verified,
           };
         },
         {
           user: streams[0].user,
           streams: [],
           alert: [],
+          verified: false,
         }
       );
 
       return [...acc, groupedItem];
     }, []);
-  }, [peers, userAlert]);
+  }, [peers, userStatus]);
 
   const selectedUser = useMemo(
     () =>
@@ -109,18 +125,23 @@ export const InvigilatorView = ({ exam }: Props) => {
         )}
       </PreviewWrapper>
       <UserWrapper>
-        {userArray.map(({ streams, user: { _id, username }, alert }) => (
-          <PreviewListItem
-            key={_id}
-            onClick={() => {
-              setSelectedUserId(_id);
-            }}
-          >
-            {R.includes(examAlertType.MULTI_PEOPLE, alert) && <UserAlertIcon />}
-            <Preview stream={streams[0]} key={_id} />
-            <NameWrapper>{username}</NameWrapper>
-          </PreviewListItem>
-        ))}
+        {userArray.map(
+          ({ streams, user: { _id, username }, alert, verified }) => (
+            <PreviewListItem
+              key={_id}
+              onClick={() => {
+                setSelectedUserId(_id);
+              }}
+            >
+              {R.includes(examAlertType.MULTI_PEOPLE, alert) && (
+                <UserAlertIcon />
+              )}
+              {verified && <UserVerifiedIcon />}
+              <Preview stream={streams[0]} key={_id} />
+              <NameWrapper>{username}</NameWrapper>
+            </PreviewListItem>
+          )
+        )}
       </UserWrapper>
     </Wrapper>
   );
@@ -179,5 +200,15 @@ const UserAlertIcon = styled(UsergroupAddOutlined)`
   padding: 4px;
   top: 4px;
   left: 4px;
+  border-radius: 50%;
+`;
+
+const UserVerifiedIcon = styled(CheckOutlined)`
+  background-color: #9a8bec;
+  color: #fff;
+  position: absolute;
+  padding: 4px;
+  top: 4px;
+  right: 4px;
   border-radius: 50%;
 `;

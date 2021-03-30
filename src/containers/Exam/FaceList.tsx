@@ -1,11 +1,12 @@
 import {
   FaceDetection,
   FaceLandmarks68,
+  FaceMatch,
   FaceMatcher,
   WithFaceDescriptor,
   WithFaceLandmarks,
 } from 'face-api.js';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import styled from 'styled-components';
 
 type Props = {
@@ -15,13 +16,12 @@ type Props = {
       WithFaceLandmarks<{ detection: FaceDetection }, FaceLandmarks68>
     >;
     image: ImageData;
+    faceMatch?: FaceMatch;
   }[];
-  faceMatcher?: FaceMatcher;
 };
 
 const PreviewItem = ({
   data,
-  faceMatcher,
 }: {
   data: {
     id: string;
@@ -29,11 +29,10 @@ const PreviewItem = ({
       WithFaceLandmarks<{ detection: FaceDetection }, FaceLandmarks68>
     >;
     image: ImageData;
+    faceMatch?: FaceMatch;
   };
-  faceMatcher?: FaceMatcher;
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [bestMatch, setBestMatch] = useState<string | null>(null);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -42,25 +41,21 @@ const PreviewItem = ({
     canvasRef.current.width = data.image.width;
     canvasRef.current.height = data.image.height;
     canvas2D.putImageData(data.image, 0, 0);
-
-    if (!faceMatcher) return;
-    const bestMatch = faceMatcher.findBestMatch(data.data.descriptor);
-    setBestMatch(bestMatch.toString());
   }, [data]);
 
   return (
     <PreviewItemWrapper>
       <Canvas ref={canvasRef} />
-      {bestMatch && <NameWrapper>{bestMatch}</NameWrapper>}
+      {data.faceMatch && <NameWrapper>{data.faceMatch.toString()}</NameWrapper>}
     </PreviewItemWrapper>
   );
 };
 
-export const FaceList = ({ list, faceMatcher }: Props) => {
+export const FaceList = ({ list }: Props) => {
   return (
     <Wrapper>
       {list.map((data) => (
-        <PreviewItem data={data} key={data.id} faceMatcher={faceMatcher} />
+        <PreviewItem data={data} key={data.id} />
       ))}
     </Wrapper>
   );
