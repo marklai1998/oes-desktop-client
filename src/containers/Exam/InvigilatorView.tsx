@@ -205,7 +205,7 @@ export const InvigilatorView = ({ exam }: Props) => {
                   }[]
                 >([], _id, userTranscript)
               ) ? (
-                <SoundOutlined />
+                <SpeechAlertIcon />
               ) : (
                 R.includes(examAlertType.MULTI_PEOPLE, alert) && (
                   <UserAlertIcon />
@@ -266,6 +266,16 @@ const NameWrapper = styled.div`
   background-color: #00000070;
   color: #fff;
   padding: 4px;
+`;
+
+const SpeechAlertIcon = styled(SoundOutlined)`
+  background-color: red;
+  color: #fff;
+  position: absolute;
+  padding: 4px;
+  top: 4px;
+  left: 4px;
+  border-radius: 50%;
 `;
 
 const UserAlertIcon = styled(UsergroupAddOutlined)`
