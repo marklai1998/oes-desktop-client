@@ -66,7 +66,7 @@ export const InvigilatorView = ({ exam }: Props) => {
     }, []);
 
     const groupedStream = R.groupBy(({ user: { _id } }) => _id, streamsArray);
-    console.log('diu', streamsArray);
+
     return R.keys(groupedStream).reduce<
       {
         user: PureUser;
