@@ -181,6 +181,7 @@ export const StudentView = ({ exam }: Props) => {
       )}
       {modelInitialized ? (
         <StreamListView
+          examId={exam._id}
           streams={[...allStreams, ...remoteStream]}
           faceMatcher={faceMatcher}
         />

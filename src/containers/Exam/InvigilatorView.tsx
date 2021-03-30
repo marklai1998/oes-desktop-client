@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { PopulatedExam } from '../../types/exam';
 import { useExamRTC } from './useExamRTC';
@@ -7,6 +7,10 @@ import { PureUser } from '../../types/user';
 import { StreamPreview } from './StreamPreview';
 import { StreamListView } from './StreamListView';
 import { mediaStreamType } from '../../constants/mediaStreamType';
+import { useSocket } from '../../hooks/useSocket';
+import { examAlertType } from '../../constants/examAlertType';
+import { socketEvent } from './../../constants/socketEvent';
+import { UsergroupAddOutlined } from '@ant-design/icons';
 
 type Props = {
   exam: PopulatedExam;
@@ -15,6 +19,20 @@ type Props = {
 export const InvigilatorView = ({ exam }: Props) => {
   const { peers } = useExamRTC({ examId: exam._id, streamReady: true });
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const { socket } = useSocket();
+  const [userAlert, setUserAlert] = useState<{
+    [id: string]: examAlertType[];
+  }>({});
+
+  const handleExamAlert = useCallback(({ peerId, alert }) => {
+    setUserAlert((perv) => R.assoc(peerId, alert, perv));
+  }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+    socket.off(socketEvent.EXAM_ALERT);
+    socket.on(socketEvent.EXAM_ALERT, handleExamAlert);
+  }, [handleExamAlert]);
 
   const userArray = useMemo(() => {
     const streamsArray = R.keys(peers).reduce<
@@ -23,10 +41,16 @@ export const InvigilatorView = ({ exam }: Props) => {
         user: PureUser;
         streams: MediaStream[];
         socketId: string;
+        alert: examAlertType[];
       }[]
     >((acc, socketId) => {
       const item = peers[socketId];
-      return [...acc, { socketId: String(socketId), ...item }];
+      const alert = R.propOr<
+        examAlertType[],
+        typeof userAlert,
+        examAlertType[]
+      >([], String(socketId), userAlert);
+      return [...acc, { socketId: String(socketId), alert, ...item }];
     }, []);
 
     const groupedStream = R.groupBy(({ user: { _id } }) => _id, streamsArray);
@@ -35,6 +59,7 @@ export const InvigilatorView = ({ exam }: Props) => {
       {
         user: PureUser;
         streams: MediaStream[];
+        alert: examAlertType[];
       }[]
     >((acc, userId) => {
       const streams = groupedStream[userId];
@@ -42,22 +67,25 @@ export const InvigilatorView = ({ exam }: Props) => {
       const groupedItem = streams.reduce<{
         user: PureUser;
         streams: MediaStream[];
+        alert: examAlertType[];
       }>(
         (acc, item) => {
           return {
             user: item.user,
             streams: [...acc.streams, ...item.streams],
+            alert: [...acc.alert, ...item.alert],
           };
         },
         {
           user: streams[0].user,
           streams: [],
+          alert: [],
         }
       );
 
       return [...acc, groupedItem];
     }, []);
-  }, [peers]);
+  }, [peers, userAlert]);
 
   const selectedUser = useMemo(
     () =>
@@ -72,6 +100,7 @@ export const InvigilatorView = ({ exam }: Props) => {
       <PreviewWrapper>
         {selectedUser && (
           <StreamListView
+            examId={exam._id}
             streams={selectedUser.streams.map((stream) => ({
               stream,
               type: mediaStreamType.UNKNOWN,
@@ -80,13 +109,14 @@ export const InvigilatorView = ({ exam }: Props) => {
         )}
       </PreviewWrapper>
       <UserWrapper>
-        {userArray.map(({ streams, user: { _id, username } }) => (
+        {userArray.map(({ streams, user: { _id, username }, alert }) => (
           <PreviewListItem
             key={_id}
             onClick={() => {
               setSelectedUserId(_id);
             }}
           >
+            {R.includes(examAlertType.MULTI_PEOPLE, alert) && <UserAlertIcon />}
             <Preview stream={streams[0]} key={_id} />
             <NameWrapper>{username}</NameWrapper>
           </PreviewListItem>
@@ -140,4 +170,14 @@ const NameWrapper = styled.div`
   background-color: #00000070;
   color: #fff;
   padding: 4px;
+`;
+
+const UserAlertIcon = styled(UsergroupAddOutlined)`
+  background-color: red;
+  color: #fff;
+  position: absolute;
+  padding: 4px;
+  top: 4px;
+  left: 4px;
+  border-radius: 50%;
 `;

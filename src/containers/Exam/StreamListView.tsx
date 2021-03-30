@@ -13,13 +13,17 @@ import {
 } from 'face-api.js';
 import { FaceList } from './FaceList';
 import { v4 as uuid } from 'uuid';
+import { useSocket } from '../../hooks/useSocket';
+import { socketEvent } from '../../constants/socketEvent';
+import { examAlertType } from '../../constants/examAlertType';
 
 type Props = {
+  examId: string;
   streams: { stream: MediaStream; type: mediaStreamType }[];
   faceMatcher?: FaceMatcher;
 };
 
-export const StreamListView = ({ streams, faceMatcher }: Props) => {
+export const StreamListView = ({ examId, streams, faceMatcher }: Props) => {
   const [selectedStreamId, setSelectedStreamId] = useState<string | null>(null);
   const [faceDetection, setFaceDetection] = useState<{
     [key: string]: {
@@ -30,6 +34,7 @@ export const StreamListView = ({ streams, faceMatcher }: Props) => {
       image: ImageData;
     }[];
   }>({});
+  const { socket } = useSocket();
 
   useUnmount(() => {
     streams.forEach(({ stream }) => {
@@ -55,6 +60,24 @@ export const StreamListView = ({ streams, faceMatcher }: Props) => {
     () => (selectedStreamId ? R.prop(selectedStreamId, faceDetection) : null),
     [selectedStreamId, faceDetection]
   );
+
+  useEffect(() => {
+    if (!socket) return;
+    const hasMultipleFace = R.any((key) => {
+      const faces = R.propOr<
+        typeof faceDetection[string],
+        typeof faceDetection,
+        typeof faceDetection[string]
+      >([], String(key), faceDetection);
+      return faces.length > 1;
+    }, R.keys(faceDetection));
+
+    socket.emit(socketEvent.EXAM_ALERT, {
+      examId,
+      peerId: socket.id,
+      alert: hasMultipleFace ? [examAlertType.MULTI_PEOPLE] : [],
+    });
+  }, [examId, faceDetection]);
 
   return (
     <>

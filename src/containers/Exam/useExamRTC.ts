@@ -26,7 +26,7 @@ export const useExamRTC = ({
   streamReady?: boolean;
 }) => {
   const { socket } = useSocket();
-  const { isStudent, user: self } = useAuth();
+  const { isStudent } = useAuth();
   const [peers, setPeers] = useState<{
     [peerId: string]: {
       connection: RTCPeerConnection;
