@@ -10,7 +10,12 @@ import { mediaStreamType } from '../../constants/mediaStreamType';
 import { useSocket } from '../../hooks/useSocket';
 import { examAlertType } from '../../constants/examAlertType';
 import { socketEvent } from './../../constants/socketEvent';
-import { UsergroupAddOutlined, CheckOutlined } from '@ant-design/icons';
+import {
+  UsergroupAddOutlined,
+  CheckOutlined,
+  SoundOutlined,
+} from '@ant-design/icons';
+import { dayjs } from '../../utils/dayjs';
 
 type Props = {
   exam: PopulatedExam;
@@ -26,6 +31,13 @@ export const InvigilatorView = ({ exam }: Props) => {
       verified: boolean;
     };
   }>({});
+  const [userTranscript, setUserTranscript] = useState<{
+    [id: string]: {
+      transcript: string[];
+      confidence: number;
+      timestamp: string;
+    }[];
+  }>({});
 
   const handlePeerStatus = useCallback(({ peerId, ...rest }) => {
     setUserStatus((perv) => R.assoc(peerId, rest, perv));
@@ -35,6 +47,28 @@ export const InvigilatorView = ({ exam }: Props) => {
     if (!socket) return;
     socket.off(socketEvent.PEER_STATUS);
     socket.on(socketEvent.PEER_STATUS, handlePeerStatus);
+  }, [handlePeerStatus]);
+
+  const handleAddTranscript = useCallback(({ transcript, user }) => {
+    setUserTranscript((prev) => {
+      const originalTranscript = R.propOr<
+        { transcript: string[]; confidence: number }[],
+        typeof userTranscript,
+        { transcript: string[]; confidence: number }[]
+      >([], user._id, prev);
+      const newTranscript = transcript.map((data: any) => ({
+        ...data,
+        timestamp: dayjs().toISOString(),
+      }));
+
+      return R.assoc(user._id, [...newTranscript, ...originalTranscript], prev);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+    socket.off(socketEvent.ADD_TRANSCRIPT);
+    socket.on(socketEvent.ADD_TRANSCRIPT, handleAddTranscript);
   }, [handlePeerStatus]);
 
   const userArray = useMemo(() => {
@@ -101,7 +135,7 @@ export const InvigilatorView = ({ exam }: Props) => {
 
       return [...acc, groupedItem];
     }, []);
-  }, [peers, userStatus]);
+  }, [peers, userStatus, userTranscript]);
 
   const selectedUser = useMemo(
     () =>
@@ -109,6 +143,18 @@ export const InvigilatorView = ({ exam }: Props) => {
         ? R.find(({ user: { _id } }) => _id === selectedUserId, userArray)
         : null,
     [userArray, selectedUserId]
+  );
+
+  const selectedTranscript = useMemo(
+    () =>
+      selectedUserId
+        ? R.propOr<
+            { transcript: string[]; confidence: number; timestamp: string }[],
+            typeof userTranscript,
+            { transcript: string[]; confidence: number; timestamp: string }[]
+          >([], selectedUserId, userTranscript)
+        : null,
+    [selectedUserId, userTranscript]
   );
 
   return (
@@ -123,6 +169,17 @@ export const InvigilatorView = ({ exam }: Props) => {
             }))}
           />
         )}
+        {selectedTranscript && (
+          <TranscriptWrapper>
+            {selectedTranscript.map(({ transcript, confidence, timestamp }) => (
+              <div key={timestamp}>
+                {`[${dayjs(timestamp).format(
+                  'YYYY-MM-DD hh:mm:ss'
+                )}] ${transcript} (${confidence.toFixed(2)})`}
+              </div>
+            ))}
+          </TranscriptWrapper>
+        )}
       </PreviewWrapper>
       <UserWrapper>
         {userArray.map(
@@ -133,8 +190,26 @@ export const InvigilatorView = ({ exam }: Props) => {
                 setSelectedUserId(_id);
               }}
             >
-              {R.includes(examAlertType.MULTI_PEOPLE, alert) && (
-                <UserAlertIcon />
+              {!R.isEmpty(
+                R.propOr<
+                  {
+                    transcript: string[];
+                    confidence: number;
+                    timestamp: string;
+                  }[],
+                  typeof userTranscript,
+                  {
+                    transcript: string[];
+                    confidence: number;
+                    timestamp: string;
+                  }[]
+                >([], _id, userTranscript)
+              ) ? (
+                <SoundOutlined />
+              ) : (
+                R.includes(examAlertType.MULTI_PEOPLE, alert) && (
+                  <UserAlertIcon />
+                )
               )}
               {verified && <UserVerifiedIcon />}
               <Preview stream={streams[0]} key={_id} />
@@ -211,4 +286,12 @@ const UserVerifiedIcon = styled(CheckOutlined)`
   top: 4px;
   right: 4px;
   border-radius: 50%;
+`;
+
+const TranscriptWrapper = styled.div`
+  box-shadow: inset 0px 0px 0px 1px #4c4c4c;
+  height: 100px;
+  overflow: auto;
+  color: #fff;
+  padding: 0 8px;
 `;
