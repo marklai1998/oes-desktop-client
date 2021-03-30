@@ -12,6 +12,7 @@ import {
   FaceLandmarks68,
 } from 'face-api.js';
 import { FaceList } from './FaceList';
+import { v4 as uuid } from 'uuid';
 
 type Props = {
   streams: { stream: MediaStream; type: mediaStreamType }[];
@@ -22,6 +23,7 @@ export const StreamListView = ({ streams, faceMatcher }: Props) => {
   const [selectedStreamId, setSelectedStreamId] = useState<string | null>(null);
   const [faceDetection, setFaceDetection] = useState<{
     [key: string]: {
+      id: string;
       data: WithFaceDescriptor<
         WithFaceLandmarks<{ detection: FaceDetection }, FaceLandmarks68>
       >;
@@ -68,7 +70,13 @@ export const StreamListView = ({ streams, faceMatcher }: Props) => {
               stream={stream}
               faceDetection={type === mediaStreamType.CAMERA}
               onFaceDetection={(faces) => {
-                setFaceDetection((prev) => R.assoc(stream.id, faces, prev));
+                setFaceDetection((prev) =>
+                  R.assoc(
+                    stream.id,
+                    faces.map((data) => ({ ...data, id: uuid() })),
+                    prev
+                  )
+                );
               }}
               faceMatcher={faceMatcher}
             />

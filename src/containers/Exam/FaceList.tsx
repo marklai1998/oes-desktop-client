@@ -8,10 +8,9 @@ import {
 import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 
-import { v4 as uuid } from 'uuid';
-
 type Props = {
   list: {
+    id: string;
     data: WithFaceDescriptor<
       WithFaceLandmarks<{ detection: FaceDetection }, FaceLandmarks68>
     >;
@@ -25,6 +24,7 @@ const PreviewItem = ({
   faceMatcher,
 }: {
   data: {
+    id: string;
     data: WithFaceDescriptor<
       WithFaceLandmarks<{ detection: FaceDetection }, FaceLandmarks68>
     >;
@@ -60,7 +60,7 @@ export const FaceList = ({ list, faceMatcher }: Props) => {
   return (
     <Wrapper>
       {list.map((data) => (
-        <PreviewItem data={data} key={uuid()} faceMatcher={faceMatcher} />
+        <PreviewItem data={data} key={data.id} faceMatcher={faceMatcher} />
       ))}
     </Wrapper>
   );
