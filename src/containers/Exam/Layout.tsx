@@ -18,6 +18,8 @@ import { useTime } from '../../hooks/useTime';
 import * as R from 'ramda';
 import { useSocket } from '../../hooks/useSocket';
 import { socketEvent } from '../../constants/socketEvent';
+import { useFetch } from '../../hooks/useFetch';
+import { getResources } from '../../services/examApi/getResources';
 
 const { Step } = Steps;
 
@@ -32,18 +34,32 @@ export const Layout = ({ children, exam }: Props) => {
   const now = useTime();
   const dayjsTime = dayjs(now);
   const [form] = Form.useForm();
+  const { fetchData, data } = useFetch(getResources);
 
   const [chat, setChat] = useState<
     { username: string; timestamp: string; message: string }[]
   >([]);
   const [chatVisible, setChatVisible] = useState(false);
+  const [resourcesVisible, setResourcesVisible] = useState(false);
+
+  useEffect(() => {
+    fetchData(exam._id);
+  }, []);
 
   const showChat = () => {
     setChatVisible(true);
   };
 
-  const onClose = () => {
+  const onChatClose = () => {
     setChatVisible(false);
+  };
+
+  const showResources = () => {
+    setResourcesVisible(true);
+  };
+
+  const onResourcesClose = () => {
+    setResourcesVisible(false);
   };
 
   const handleSubmit = ({ chat }: any) => {
@@ -131,7 +147,7 @@ export const Layout = ({ children, exam }: Props) => {
           <Step title="End" description={dayjs(times[3]).fromNow()} />
         </Steps>
         <Input.Group compact>
-          <Button type="primary">
+          <Button type="primary" onClick={showResources}>
             <CloudDownloadOutlined />
           </Button>
           <Button type="primary" onClick={showChat}>
@@ -142,10 +158,10 @@ export const Layout = ({ children, exam }: Props) => {
       <Drawer
         title="Chat"
         placement="right"
-        onClose={onClose}
+        onClose={onChatClose}
         visible={chatVisible}
       >
-        <ChatWrapper>
+        <DrawerWrapper>
           <ChatHistory>
             {chat.map(({ timestamp, message, username }) => (
               <div key={timestamp}>
@@ -164,7 +180,26 @@ export const Layout = ({ children, exam }: Props) => {
               </Button>
             </Input.Group>
           </StyledForm>
-        </ChatWrapper>
+        </DrawerWrapper>
+      </Drawer>
+      <Drawer
+        title="Resources"
+        placement="right"
+        onClose={onResourcesClose}
+        visible={resourcesVisible}
+      >
+        <DrawerWrapper>
+          {(data || []).map(({ _id, originalname, filename }) => (
+            <div key={_id}>
+              <a
+                href={`/uploads/resources/${filename}`}
+                download={originalname}
+              >
+                {originalname}
+              </a>
+            </div>
+          ))}
+        </DrawerWrapper>
       </Drawer>
     </Wrapper>
   );
@@ -243,10 +278,11 @@ const Date = styled.div`
   color: #575757;
 `;
 
-const ChatWrapper = styled.div`
+const DrawerWrapper = styled.div`
   height: 100%;
   display: flex;
   flex-direction: column;
+  font-size: 12px;
 
   & .ant-input-group {
     display: flex;
@@ -256,7 +292,6 @@ const ChatWrapper = styled.div`
 const ChatHistory = styled.div`
   height: 100%;
   overflow: auto;
-  font-size: 12px;
 `;
 
 const StyledForm = styled(Form)`
