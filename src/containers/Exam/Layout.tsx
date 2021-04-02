@@ -1,9 +1,14 @@
-import { Button, Steps } from 'antd';
-import React, { useMemo } from 'react';
+import { Button, Drawer, Input, Steps, Form } from 'antd';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { Box } from '../../components/Box';
 import { PopulatedExam } from '../../types/exam';
-import { LeftOutlined } from '@ant-design/icons';
+import {
+  LeftOutlined,
+  MessageOutlined,
+  CloudDownloadOutlined,
+  RightOutlined,
+} from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import Avatar from 'antd/lib/avatar/avatar';
 import randomColor from 'randomcolor';
@@ -11,6 +16,9 @@ import { useAuth } from '../../hooks/useAuth';
 import { dayjs } from '../../utils/dayjs';
 import { useTime } from '../../hooks/useTime';
 import * as R from 'ramda';
+import { useSocket } from '../../hooks/useSocket';
+import { socketEvent } from '../../constants/socketEvent';
+
 const { Step } = Steps;
 
 type Props = {
@@ -20,8 +28,53 @@ type Props = {
 
 export const Layout = ({ children, exam }: Props) => {
   const { user } = useAuth();
+  const { socket } = useSocket();
   const now = useTime();
   const dayjsTime = dayjs(now);
+  const [form] = Form.useForm();
+
+  const [chat, setChat] = useState<
+    { username: string; timestamp: string; message: string }[]
+  >([]);
+  const [chatVisible, setChatVisible] = useState(false);
+
+  const showChat = () => {
+    setChatVisible(true);
+  };
+
+  const onClose = () => {
+    setChatVisible(false);
+  };
+
+  const handleSubmit = ({ chat }: any) => {
+    if (!chat || R.isEmpty(chat)) return;
+    form.resetFields();
+
+    setChat((prev) => [
+      ...prev,
+      { username: 'you', timestamp: dayjs().toISOString(), message: chat },
+    ]);
+
+    socket &&
+      socket.emit(socketEvent.CHAT_MESSAGE, {
+        examId: exam._id,
+        message: chat,
+      });
+  };
+
+  const handleChatMessage = useCallback(
+    (item: { username: string; timestamp: string; message: string }) => {
+      console.log(item);
+      setChat((prev) => [...prev, item]);
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!socket) return;
+    socket.off(socketEvent.CHAT_MESSAGE);
+    socket.on(socketEvent.CHAT_MESSAGE, handleChatMessage);
+  }, [socket, handleChatMessage]);
 
   const times = useMemo(() => {
     const { from, to } = exam;
@@ -77,7 +130,42 @@ export const Layout = ({ children, exam }: Props) => {
           <Step title="Finish" description={dayjs(times[2]).fromNow()} />
           <Step title="End" description={dayjs(times[3]).fromNow()} />
         </Steps>
+        <Input.Group compact>
+          <Button type="primary">
+            <CloudDownloadOutlined />
+          </Button>
+          <Button type="primary" onClick={showChat}>
+            <MessageOutlined />
+          </Button>
+        </Input.Group>
       </TimeLine>
+      <Drawer
+        title="Chat"
+        placement="right"
+        onClose={onClose}
+        visible={chatVisible}
+      >
+        <ChatWrapper>
+          <ChatHistory>
+            {chat.map(({ timestamp, message, username }) => (
+              <div key={timestamp}>
+                {`[${username}] ${message}`}
+                <Date>[{dayjs(timestamp).format('YYYY-MM-DD hh:mm:ss')}]</Date>
+              </div>
+            ))}
+          </ChatHistory>
+          <StyledForm onFinish={handleSubmit} form={form}>
+            <Input.Group compact>
+              <Form.Item noStyle name="chat">
+                <Input />
+              </Form.Item>
+              <Button type="primary" htmlType="submit">
+                <RightOutlined />
+              </Button>
+            </Input.Group>
+          </StyledForm>
+        </ChatWrapper>
+      </Drawer>
     </Wrapper>
   );
 };
@@ -114,6 +202,11 @@ const UserWrapper = styled.div`
 
 const TimeLine = styled(Box)`
   padding: 8px 16px;
+  display: flex;
+
+  & .ant-steps {
+    width: 100%;
+  }
 
   & .ant-steps-item-icon {
     display: inline-flex;
@@ -122,6 +215,13 @@ const TimeLine = styled(Box)`
   & .ant-steps-icon {
     width: 100%;
     align-self: center;
+  }
+
+  & .ant-input-group {
+    align-self: center;
+    margin-left: 8px;
+    width: unset;
+    flex-shrink: 0;
   }
 `;
 
@@ -141,4 +241,24 @@ const Time = styled.span`
 
 const Date = styled.div`
   color: #575757;
+`;
+
+const ChatWrapper = styled.div`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  & .ant-input-group {
+    display: flex;
+  }
+`;
+
+const ChatHistory = styled.div`
+  height: 100%;
+  overflow: auto;
+  font-size: 12px;
+`;
+
+const StyledForm = styled(Form)`
+  flex-shrink: 0;
 `;
