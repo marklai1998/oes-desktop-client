@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useMount, useUnmount } from 'react-use';
+import { useUnmount } from 'react-use';
 import styled from 'styled-components';
 import * as R from 'ramda';
 import { StreamPreview } from './StreamPreview';

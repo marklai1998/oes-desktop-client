@@ -190,25 +190,23 @@ export const InvigilatorView = ({ exam }: Props) => {
                 setSelectedUserId(_id);
               }}
             >
-              {!R.isEmpty(
-                R.propOr<
-                  {
-                    transcript: string[];
-                    confidence: number;
-                    timestamp: string;
-                  }[],
-                  typeof userTranscript,
-                  {
-                    transcript: string[];
-                    confidence: number;
-                    timestamp: string;
-                  }[]
-                >([], _id, userTranscript)
-              ) ? (
-                <SpeechAlertIcon />
+              {R.includes(examAlertType.MULTI_PEOPLE, alert) ? (
+                <UserAlertIcon />
               ) : (
-                R.includes(examAlertType.MULTI_PEOPLE, alert) && (
-                  <UserAlertIcon />
+                !R.isEmpty(
+                  R.propOr<
+                    {
+                      transcript: string[];
+                      confidence: number;
+                      timestamp: string;
+                    }[],
+                    typeof userTranscript,
+                    {
+                      transcript: string[];
+                      confidence: number;
+                      timestamp: string;
+                    }[]
+                  >([], _id, userTranscript) && <SpeechAlertIcon />
                 )
               )}
               {verified && <UserVerifiedIcon />}
